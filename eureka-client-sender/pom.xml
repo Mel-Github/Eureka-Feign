@@ -17,6 +17,8 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<spring-cloud.version>Greenwich.SR1</spring-cloud.version>
+		<version.number>${git.commit.time}.${git.commit.id.abbrev}</version.number>
+		<docker.repository.name>melcheng/${project.artifactId}</docker.repository.name>
 	</properties>
 
 	<dependencies>
@@ -74,6 +76,103 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+				<!--<version>2.2.6</version>-->
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>revision</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<dateFormat>yyyyMMdd-HHmmss</dateFormat><!--  human-readable part of the version number -->
+					<dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+					<generateGitPropertiesFile>false</generateGitPropertiesFile><!-- somehow necessary. otherwise the variables are not available in the pom -->
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.21.0</version>
+				<extensions>true</extensions>
+				<configuration>
+					<!-- a) use "docker login" up front to store the credentials on the local machine. -->
+					<!-- or b) comment in the following snippet: -->
+					<!--<authConfig>-->
+					<!--<username>phauer</username>-->
+					<!--<password>docker123</password>-->
+					<!--</authConfig>-->
+					<images>
+						<image>
+							<name>${docker.repository.name}:${version.number}</name>
+							<alias>${project.artifactId}</alias>
+							<build>
+								<!--<from>openjdk:8-alpine</from>-->
+								<!--<tags>&lt;!&ndash; define additional tags for the image &ndash;&gt;-->
+									<!--<tag>latest</tag>-->
+								<!--</tags>-->
+								<!--<assembly>-->
+									<!--<descriptorRef>artifact</descriptorRef>-->
+								<!--</assembly>-->
+								<!--<ports>-->
+									<!--<port>8080</port>-->
+								<!--</ports>-->
+								<!--<cmd>-->
+									<!--<shell>-->
+										<!--java -jar /maven/${project.build.finalName}.jar-->
+									<!--</shell>-->
+								<!--</cmd>-->
+								<dockerFileDir>${project.basedir}/src/main/docker</dockerFileDir>
+								<dockerFile>Dockerfile</dockerFile>
+							</build>
+						</image>
+					</images>
+				</configuration>
+				<executions>
+					<execution>
+						<id>build-docker-image</id>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>push-docker-image-to-registry</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>push</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-install-plugin</artifactId>
+				<configuration>
+					<skip>true</skip> <!-- we push the container image to the local registry instead -->
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip> <!--  we push the image instead  -->
+				</configuration>
+			</plugin>
+
+
 		</plugins>
 	</build>
 
