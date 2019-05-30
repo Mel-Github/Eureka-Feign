@@ -1,5 +1,6 @@
 FROM openjdk:8-alpine
-RUN groupadd -r app && useradd -r -g app -d /home/app -s /sbin/nologin -c "Docker image user" app
+RUN groupadd -g 999 appuser && useradd -r -u 999 -g appuser appuser
+USER appuser
 EXPOSE 8080
 COPY maven /maven/
 ADD https://get.aquasec.com/microscanner .
